@@ -1,0 +1,594 @@
+
+/* =================================
+   پایگاه مقاومت شهید عبدالصمد فانی
+   Main Styles
+================================= */
+
+
+/* فونت وزیرمتن بولد */
+/* فونت وزیرمتن بولد */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("../fonts/Vazirmatn-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    color-scheme: light;
+
+    --bg: #ffffff;
+    --surface: #f4f7f5;
+    --surface-hover: #eaf2ec;
+    --text: #20352a;
+    --muted: #718076;
+    --primary: #176b45;
+    --primary-hover: #105537;
+    --border: #e1e8e2;
+    --header-bg: rgba(255, 255, 255, 0.94);
+    --shadow: 0 8px 28px rgba(20, 60, 35, 0.07);
+}
+
+/* تم تاریک */
+
+body.dark-mode {
+    color-scheme: dark;
+
+    --bg: #101612;
+    --surface: #18211b;
+    --surface-hover: #23352a;
+    --text: #edf4ee;
+    --muted: #a1b1a5;
+    --primary: #64c18b;
+    --primary-hover: #85d7a5;
+    --border: #2c3b30;
+    --header-bg: rgba(16, 22, 18, 0.94);
+    --shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+/* تنظیمات عمومی */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Vazirmatn", Tahoma, Arial, sans-serif;
+    line-height: 1.9;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    font: inherit;
+}
+
+/* هدر */
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding: 14px 5%;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.brand-logo {
+    display: grid;
+    place-items: center;
+
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+
+    border-radius: 14px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 28px;
+}
+
+.brand-title {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.8;
+}
+
+.brand-title strong {
+    font-size: 14px;
+}
+
+.brand-title > span {
+    font-size: 13px;
+}
+
+.brand-title small {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+/* دکمه‌های هدر */
+
+.theme-toggle,
+.menu-toggle {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+
+    width: 44px;
+    height: 44px;
+
+    border: 1px solid var(--border);
+    border-radius: 14px;
+
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+
+    transition:
+        background-color 0.25s ease,
+        transform 0.25s ease;
+}
+
+.theme-toggle {
+    margin-right: auto;
+    font-size: 21px;
+}
+
+.theme-toggle:hover,
+.menu-toggle:hover {
+    background: var(--surface-hover);
+}
+
+.theme-toggle:active,
+.menu-toggle:active {
+    transform: scale(0.94);
+}
+
+.menu-toggle {
+    gap: 5px;
+    padding: 10px;
+}
+
+.menu-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--text);
+}
+
+/* منو */
+
+.site-nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 5%;
+    right: 5%;
+
+    padding: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.site-nav.is-open {
+    display: flex;
+    flex-direction: column;
+}
+
+.site-nav a {
+    padding: 11px 14px;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.site-nav a:hover {
+    background: var(--surface-hover);
+    color: var(--primary);
+}
+
+/* بخش معرفی */
+
+.hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    min-height: 300px;
+    margin: 28px 5%;
+    padding: 36px;
+
+    border: 1px solid var(--border);
+    border-radius: 24px;
+
+    background:
+        radial-gradient(
+            circle at 10% 20%,
+            rgba(23, 107, 69, 0.13),
+            transparent 45%
+        ),
+        var(--surface);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 650px;
+}
+
+.hero-label,
+.section-eyebrow {
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.hero h1 {
+    margin: 14px 0;
+    font-size: clamp(24px, 4vw, 40px);
+    line-height: 1.9;
+}
+
+.hero h1 span {
+    display: block;
+    color: var(--primary);
+}
+
+.hero p {
+    color: var(--muted);
+}
+
+.hero-decoration {
+    color: var(--primary);
+    opacity: 0.15;
+    font-size: clamp(100px, 18vw, 220px);
+}
+
+/* شش کارت اصلی */
+
+.sections {
+    padding: 24px 5% 56px;
+}
+
+.section-heading {
+    margin-bottom: 24px;
+}
+
+.section-heading h2 {
+    margin: 8px 0;
+    font-size: clamp(21px, 3vw, 29px);
+}
+
+.section-heading p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.section-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+
+    min-width: 0;
+    padding: 24px;
+
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background-color 0.25s ease;
+}
+
+.section-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    background: var(--surface);
+}
+
+.section-card:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 4px;
+}
+
+.card-icon {
+    display: grid;
+    place-items: center;
+
+    width: 56px;
+    height: 56px;
+
+    border-radius: 16px;
+    background: var(--surface-hover);
+    color: var(--primary);
+    font-size: 32px;
+}
+
+.section-card h3 {
+    margin: 4px 0 0;
+    font-size: 17px;
+}
+
+.section-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+/* فوتر */
+
+.site-footer {
+    padding: 24px 5%;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    text-align: center;
+    font-size: 13px;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+/* کاهش انیمیشن برای کاربران نیازمند */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* انیمیشن تغییر تم */
+body,
+.site-header,
+.hero,
+.section-card,
+.card-icon,
+.site-nav,
+.site-footer,
+.section-heading,
+.theme-toggle,
+.menu-toggle {
+    transition:
+        background-color 0.4s ease,
+        color 0.4s ease,
+        border-color 0.4s ease,
+        box-shadow 0.4s ease;
+}
+
+/* انیمیشن دکمه تغییر تم */
+.theme-toggle {
+    overflow: hidden;
+    transform-origin: center;
+}
+
+.theme-toggle:hover {
+    transform: rotate(-8deg) scale(1.06);
+}
+
+.theme-toggle:active {
+    transform: scale(0.86) rotate(15deg);
+}
+
+/* چرخش آیکون خورشید و ماه */
+#themeIcon {
+    display: inline-block;
+}
+
+.theme-toggle.theme-change #themeIcon {
+    animation: themeIconAnimation 0.45s ease;
+}
+
+@keyframes themeIconAnimation {
+    0% {
+        transform: rotate(-120deg) scale(0.4);
+        opacity: 0;
+    }
+
+    65% {
+        transform: rotate(15deg) scale(1.15);
+        opacity: 1;
+    }
+
+    100% {
+        transform: rotate(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* احترام به تنظیم کاهش حرکت دستگاه */
+@media (prefers-reduced-motion: reduce) {
+    .theme-toggle.theme-change #themeIcon {
+        animation: none;
+    }
+}
+
+
+/* =====================================
+   ارتقای ظاهری صفحه اصلی
+===================================== */
+
+/* پس‌زمینه و ظاهر کلی */
+body {
+    background-image:
+        radial-gradient(
+            ellipse at 5% 0%,
+            rgba(23, 107, 69, 0.055),
+            transparent 42%
+        );
+    background-attachment: fixed;
+}
+
+/* هدر مرتب‌تر */
+.site-header {
+    border-bottom-color: var(--border);
+    box-shadow: 0 4px 24px rgba(20, 60, 35, 0.035);
+}
+
+/* بخش معرفی */
+.hero {
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    min-height: 340px;
+    padding: clamp(24px, 5vw, 52px);
+}
+
+.hero-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 13px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    background: var(--bg);
+}
+
+.hero h1 {
+    letter-spacing: -0.6px;
+}
+
+.hero p {
+    max-width: 580px;
+    line-height: 2.2;
+}
+
+/* تیتر بخش‌ها */
+.section-heading {
+    position: relative;
+    padding-right: 15px;
+}
+
+.section-heading::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    border-radius: 10px;
+    background: var(--primary);
+}
+
+.section-heading h2 {
+    letter-spacing: -0.3px;
+}
+
+/* کارت‌های اصلی */
+.section-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    min-height: 190px;
+}
+
+.section-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(
+        90deg,
+        var(--primary),
+        transparent
+    );
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.section-card:hover::after,
+.section-card:focus-visible::after {
+    opacity: 1;
+}
+
+.card-icon {
+    border: 1px solid var(--border);
+    transition:
+        transform 0.3s ease,
+        background-color 0.3s ease;
+}
+
+.section-card:hover .card-icon {
+    transform: translateY(-3px) scale(1.04);
+}
+
+/* بازخورد لمس در موبایل */
+.section-card:active {
+    transform: scale(0.985);
+}
+
+/* فوتر */
+.site-footer {
+    margin-top: 24px;
+}
+
+/* تم تاریک */
+body.dark-mode {
+    background-image:
+        radial-gradient(
+            ellipse at 5% 0%,
+            rgba(100, 193, 139, 0.055),
+            transparent 42%
+        );
+}
+
+/* کاهش حرکت برای کاربران نیازمند */
+@media (prefers-reduced-motion: reduce) {
+    .section-card,
+    .section-card::after,
+    .card-icon {
+        transition: none !important;
+    }
+}
