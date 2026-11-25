@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بررسی سلامت سایت</title>
+<style>
+body{font-family:Tahoma,sans-serif;background:#0b0d12;color:#f8fafc;padding:16px;line-height:1.9}
+.t{border:1px solid #343b49;border-radius:12px;padding:10px 14px;margin:10px 0;background:#131720}
+.ok{color:#22c55e}.bad{color:#ef4444}.wait{color:#f59e0b}
+pre{white-space:pre-wrap;word-break:break-all;direction:ltr;text-align:left;font-size:12px;color:#aab2c0;margin:6px 0 0}
+</style>
+
+    <style>
+/* ====== انیمیشن‌ها و حالت تیره (سراسری) ====== */
+
+body { animation: fade-in .32s ease-out both; }
+
+body > main, body > .container, body > .auth-card, body > .rp-main {
+    animation: rise-in .42s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+body.leaving { animation: leave-out .2s ease-in forwards; pointer-events: none; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes leave-out { to { opacity: 0; transform: translateY(-8px) scale(.99); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: none; } }
+@keyframes pop-out { to { opacity: 0; transform: scale(.92); } }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes msg-in { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes row-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@keyframes slide-in-up { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+
+/* پنجره‌ها: ورود و خروج */
+.sheet-overlay, .pc-overlay, .chat-lightbox, .vp-overlay { animation: fade-in .22s ease-out both; }
+.sheet { animation: sheet-up .3s cubic-bezier(.2, .9, .3, 1) both; }
+.pc-card { animation: pop-in .3s cubic-bezier(.2, .9, .3, 1) both; }
+.viewer-img, .chat-lightbox img { animation: pop-in .3s cubic-bezier(.2, .9, .3, 1) both; }
+
+.closing { animation: fade-out .2s ease-in forwards !important; }
+.closing .sheet { animation: sheet-down .2s ease-in forwards !important; }
+.closing .pc-card { animation: pop-out .2s ease-in forwards !important; }
+
+/* پیام‌ها و فهرست‌ها */
+.chat-row.pop { animation: msg-in .32s cubic-bezier(.2, .9, .3, 1) both; }
+.cl-item.enter { animation: row-in .38s cubic-bezier(.2, .8, .2, 1) both; }
+.rp-card, .panel, .dash-link, .dash-stat { animation: slide-in-up .4s cubic-bezier(.2, .8, .2, 1) both; }
+.pf-card { animation: slide-in-up .45s cubic-bezier(.2, .8, .2, 1) both; }
+
+/* لمس دکمه‌ها */
+button, .cl-item, .cl-tab, .sheet-item, .dash-link, .pf-row, a.account-button {
+    transition: transform .15s ease, background-color .2s ease, opacity .2s ease, box-shadow .2s ease;
+}
+button:active:not(:disabled), .cl-item:active, .sheet-item:active, .dash-link:active, .pf-row:active { transform: scale(.97); }
+
+/* حالت تیره */
+html.dark { filter: invert(.92) hue-rotate(180deg); background: #fff; }
+html.dark img, html.dark video, html.dark .has-img, html.dark .nb-av, html.dark .vp-overlay,
+html.dark .chat-lightbox, html.dark .vid-card, html.dark .pf-hero-avatar.has-img {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+}
+
+</style>
+    <link rel="manifest" href="manifest.webmanifest">
+    <script>
+(function () {
+    "use strict";
+
+    /* ---------- رنگ تم و حالت تیره (در همهٔ صفحه‌ها) ---------- */
+
+    const THEMES = {
+        green:  { g: "#176b45", d: "#104d33", l: "#e8f4ed" },
+        blue:   { g: "#2563eb", d: "#1e40af", l: "#e8efff" },
+        purple: { g: "#7c3aed", d: "#5b21b6", l: "#f0e9ff" },
+        pink:   { g: "#db2777", d: "#9d174d", l: "#fde8f1" },
+        orange: { g: "#ea580c", d: "#9a3412", l: "#ffeee3" }
+    };
+
+    const root = document.documentElement;
+
+    function applyTheme() {
+        let name = "green";
+        let dark = false;
+        try {
+            name = localStorage.getItem("themeColor") || "green";
+            dark = localStorage.getItem("darkMode") === "1";
+        } catch (_) {}
+
+        const t = THEMES[name] || THEMES.green;
+        root.style.setProperty("--green", t.g);
+        root.style.setProperty("--green-dark", t.d);
+        root.style.setProperty("--green-light", t.l);
+        root.classList.toggle("dark", dark);
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = t.g;
+    }
+
+    applyTheme();
+    window.AppTheme = { THEMES, apply: applyTheme };
+
+    /* ---------- انیمیشن خروج از صفحه ---------- */
+
+    document.addEventListener("click", event => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const link = event.target.closest("a[href]");
+        if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+
+        const href = link.getAttribute("href");
+        if (!href || href.startsWith("#") || href.startsWith("javascript:") || /^(mailto|tel):/.test(href)) return;
+
+        const url = new URL(link.href, location.href);
+        if (url.origin !== location.origin) return;
+
+        event.preventDefault();
+        document.body.classList.add("leaving");
+        setTimeout(() => { location.href = url.href; }, 190);
+    });
+
+    window.addEventListener("pageshow", () => document.body.classList.remove("leaving"));
+})();
+
+</script></head>
+<body>
+<h2>بررسی سلامت سایت</h2>
+<p>وقتی همهٔ مراحل تموم شد، از این صفحه اسکرین‌شات بگیر و بفرست.</p>
+<div id="out"></div>
+
+<script>
+window.addEventListener("error", e => add("خطای جاوااسکریپت", false, e.message + " (" + (e.filename||"").split("/").pop() + ":" + e.lineno + ")"));
+const out = document.getElementById("out");
+function add(title, ok, detail) {
+    const d = document.createElement("div"); d.className = "t";
+    const h = document.createElement("div");
+    h.className = ok === null ? "wait" : ok ? "ok" : "bad";
+    h.textContent = (ok === null ? "⏳ " : ok ? "✅ " : "❌ ") + title;
+    d.appendChild(h);
+    if (detail) { const p = document.createElement("pre"); p.textContent = detail; d.appendChild(p); }
+    out.appendChild(d);
+}
+const errText = e => "code=" + (e && e.code) + " type=" + (e && e.type) + "\n" + (e && e.message);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
+<script>
+if (typeof Appwrite === "undefined") add("کتابخانهٔ Appwrite بارگذاری نشد (اینترنت/فیلترشکن؟)", false);
+else add("کتابخانهٔ Appwrite بارگذاری شد", true);
+</script>
+<script>
+"use strict";
+
+// تنظیمات اتصال به Appwrite
+const APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = "6ad8c664000392442826";
+const APPWRITE_DATABASE_ID = "6ad8cb9d003bd982b313";
+
+// جدول اعضا (همان جدول قبلی)
+const APPWRITE_TABLE_ID = "fani_data";
+
+// پیام‌ها هم در همین جدول ذخیره می‌شوند (نسخهٔ رایگان فقط یک جدول دارد)
+const APPWRITE_MESSAGES_TABLE_ID = APPWRITE_TABLE_ID;
+
+// فضای ذخیرهٔ عکس و ویدیو (Storage)
+const APPWRITE_BUCKET_ID = "media";
+
+// کلید عمومی اعلان گوشی (Web Push)
+const VAPID_PUBLIC_KEY = "BMiVZ0i0ML_k9CCE0Pyh2DRFjp-Wzn7AtrxAE4Vg57ABAF4t_CgeIiQrpRZwFEAqTJBb2lrGdr91J_BokcLabGE";
+
+// شناسهٔ حساب مدیر
+const ADMIN_USER_ID = "6adb4b2600227975bf32";
+
+// شناسهٔ تابع Appwrite (بعد از ساخت تابع، همین‌جا بنویس)
+const FUNCTION_ID = "fani-admin";
+
+// نام حلقه‌ها
+const RING_NAMES = {
+    ring1: "حلقه اول",
+    ring2: "حلقه دوم",
+    ring3: "حلقه سوم",
+    ring4: "حلقه چهارم",
+    ring5: "حلقه پنجم"
+};
+
+// ساخت اتصال مشترک
+const appwriteClient = new Appwrite.Client()
+    .setEndpoint(APPWRITE_ENDPOINT)
+    .setProject(APPWRITE_PROJECT_ID);
+
+// سرویس حساب کاربری
+const appwriteAccount = new Appwrite.Account(appwriteClient);
+
+// سرویس جدول‌ها
+const appwriteTablesDB = new Appwrite.TablesDB(appwriteClient);
+
+// سرویس فایل‌ها
+const appwriteStorage = new Appwrite.Storage(appwriteClient);
+
+// سرویس گروه‌ها (Teams)
+const appwriteTeams = new Appwrite.Teams(appwriteClient);
+
+// سرویس توابع
+const appwriteFunctions = new Appwrite.Functions(appwriteClient);
+
+// اجرای تابع سمت سرور؛ هویت کاربر را خود Appwrite تأیید می‌کند
+async function callServer(payload) {
+    const execution = await appwriteFunctions.createExecution({
+        functionId: FUNCTION_ID,
+        body: JSON.stringify(payload),
+        async: false,
+        method: "POST",
+        headers: { "content-type": "application/json" }
+    });
+
+    let data = {};
+    try { data = JSON.parse(execution.responseBody || "{}"); } catch (_) {}
+
+    if (execution.status === "failed" || !data.success) {
+        throw new Error(data.error || "درخواست ناموفق بود.");
+    }
+    return data;
+}
+
+
+// لینک موقت فایل (پخش مستقیم ویدیو و دانلود؛ در وب‌اپ‌ها هم کار می‌کند)
+const _linkCache = new Map();
+
+async function fileLinkUrl(fileId, mode) {
+    const hit = _linkCache.get(fileId);
+    let secret = hit && hit.until > Date.now() ? hit.secret : null;
+
+    if (!secret) {
+        const data = await callServer({ action: "fileLink", fileId });
+        secret = data.secret;
+        _linkCache.set(fileId, { secret, until: Date.now() + 8 * 60 * 1000 });
+    }
+
+    return `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${fileId}/${mode || "view"}` +
+        `?project=${APPWRITE_PROJECT_ID}&token=${secret}`;
+}
+
+</script>
+<script>
+"use strict";
+
+/* =========================================================
+   ابزارهای مشترک: هش گفت‌وگو، آپلود، نمایش فایل، پروفایل‌ها
+========================================================= */
+
+// هش کوتاه و ثابت (دقیقاً همان الگوریتم تابع سرور)
+function convHash(str) {
+    let h1 = 0x811c9dc5, h2 = 5381;
+    for (let i = 0; i < str.length; i++) {
+        const c = str.charCodeAt(i);
+        h1 ^= c; h1 = Math.imul(h1, 16777619) >>> 0;
+        h2 = (Math.imul(h2, 33) ^ c) >>> 0;
+    }
+    return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+}
+const dmKey = (a, b) => "d:" + convHash([a, b].sort().join("|")).slice(0, 12);
+const convListKey = id => "c:" + convHash(id).slice(0, 12);
+
+/* ---------- توکن موقت برای خواندن فایل‌ها ---------- */
+
+let _jwt = null, _jwtAt = 0;
+async function getJwt() {
+    if (_jwt && Date.now() - _jwtAt < 10 * 60 * 1000) return _jwt;
+    const result = await appwriteAccount.createJWT();
+    _jwt = result.jwt;
+    _jwtAt = Date.now();
+    return _jwt;
+}
+
+const _blobPromises = new Map();
+const _blobUrls = new Map();
+
+// آدرس آماده (اگر قبلاً دانلود شده)
+const fileUrlIfReady = fileId => _blobUrls.get(fileId) || null;
+
+// نوع فایل را از روی چند بایت اول حدس می‌زند
+function sniffMime(buffer) {
+    const b = new Uint8Array(buffer.slice(0, 16));
+    const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
+    if (b[0] === 0x89 && ascii(1, 4) === "PNG") return "image/png";
+    if (b[0] === 0xff && b[1] === 0xd8) return "image/jpeg";
+    if (ascii(0, 3) === "GIF") return "image/gif";
+    if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "image/webp";
+    if (ascii(4, 8) === "ftyp") return ascii(8, 12) === "qt  " ? "video/quicktime" : "video/mp4";
+    if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return "video/webm";
+    return "application/octet-stream";
+}
+
+// دریافت بایت‌های فایل: اول با خود SDK، بعد با توکن JWT
+async function fetchFileBytes(fileId) {
+    const url = `${APPWRITE_ENDPOINT}/storage/buckets/${APPWRITE_BUCKET_ID}/files/${fileId}/view`;
+    let firstError = null;
+
+    if (typeof appwriteClient.call === "function") {
+        try {
+            const data = await appwriteClient.call("get", new URL(url), {}, {}, "arrayBuffer");
+            if (data && data.byteLength) return data;
+        } catch (error) {
+            firstError = error;
+        }
+    }
+
+    const jwt = await getJwt();
+    const response = await fetch(url, {
+        headers: { "X-Appwrite-Project": APPWRITE_PROJECT_ID, "X-Appwrite-JWT": jwt }
+    });
+
+    if (!response.ok) {
+        const error = new Error("file " + response.status);
+        error.code = response.status || (firstError && firstError.code) || 0;
+        throw error;
+    }
+    return response.arrayBuffer();
+}
+
+// دانلود امن فایل و تبدیل به آدرس قابل نمایش
+function fileBlobUrl(fileId) {
+    if (_blobPromises.has(fileId)) return _blobPromises.get(fileId);
+
+    const promise = (async () => {
+        const buffer = await fetchFileBytes(fileId);
+        const url = URL.createObjectURL(new Blob([buffer], { type: sniffMime(buffer) }));
+        _blobUrls.set(fileId, url);
+        return url;
+    })();
+
+    _blobPromises.set(fileId, promise);
+    promise.catch(error => {
+        _blobPromises.delete(fileId);
+        console.warn("file load failed", fileId, error && error.code, error && error.message);
+    });
+    return promise;
+}
+
+/* ---------- آپلود ---------- */
+
+let _meId = null;
+async function myId() {
+    if (!_meId) _meId = (await appwriteAccount.get()).$id;
+    return _meId;
+}
+
+// آپلود با دسترسی موقت فقط برای خود کاربر؛ تابع سرور دسترسی نهایی را تعیین می‌کند
+async function uploadToBucket(file, onProgress) {
+    const id = await myId();
+    const created = await appwriteStorage.createFile({
+        bucketId: APPWRITE_BUCKET_ID,
+        fileId: Appwrite.ID.unique(),
+        file,
+        permissions: [
+            Appwrite.Permission.read(Appwrite.Role.user(id)),
+            Appwrite.Permission.delete(Appwrite.Role.user(id))
+        ],
+        onProgress
+    });
+    return created.$id;
+}
+
+// کوچک‌کردن عکس قبل از آپلود (سرعت و حجم کمتر)
+async function compressImage(file, maxSide = 1280, quality = 0.8) {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file; // gif و غیره دست‌نخورده
+    try {
+        const bitmap = await createImageBitmap(file);
+        const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+        if (!blob || blob.size >= file.size) return file;
+        return new File([blob], "photo.jpg", { type: "image/jpeg" });
+    } catch (_) {
+        return file;
+    }
+}
+
+/* ---------- دانلود و نمایش بزرگ عکس ---------- */
+
+async function downloadFromUrl(url, baseName) {
+    try {
+        const blob = await (await fetch(url)).blob();
+        const ext = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif",
+                      "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov" }[blob.type] ||
+            (String(blob.type).startsWith("video/") ? "mp4" : "jpg");
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = (baseName || "image") + "." + ext;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (_) {
+        window.open(url, "_blank");
+    }
+}
+
+function openImageViewer(url, baseName, fileId) {
+    const box = document.createElement("div");
+    box.className = "viewer";
+
+    const bar = document.createElement("div");
+    bar.className = "viewer-bar";
+
+    const download = document.createElement("button");
+    download.type = "button";
+    download.className = "viewer-btn";
+    download.textContent = "⬇";
+    download.setAttribute("aria-label", "دانلود تصویر");
+    download.addEventListener("click", async event => {
+        event.stopPropagation();
+        try {
+            if (fileId) await downloadFile(fileId, baseName);
+            else await downloadFromUrl(url, baseName);
+        } catch (_) { appToast("دانلود ناموفق بود."); }
+    });
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "viewer-btn";
+    close.textContent = "✕";
+    close.setAttribute("aria-label", "بستن");
+
+    bar.append(download, close);
+
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "";
+    img.className = "viewer-img";
+    img.addEventListener("click", event => event.stopPropagation());
+
+    box.append(bar, img);
+    document.body.appendChild(box);
+
+    const remove = () => { closeOverlay(box); document.removeEventListener("keydown", onKey); };
+    const onKey = event => { if (event.key === "Escape") remove(); };
+    document.addEventListener("keydown", onKey);
+    close.addEventListener("click", remove);
+    box.addEventListener("click", remove);
+}
+
+/* ---------- پروفایل‌ها ---------- */
+
+const profileCache = new Map(); // userId -> { name, bio, avatar } یا {}
+
+async function loadProfiles(ids) {
+    const missing = [...new Set(ids)].filter(id => id && !profileCache.has(id));
+
+    for (let i = 0; i < missing.length; i += 50) {
+        const chunk = missing.slice(i, i + 50);
+        try {
+            const result = await appwriteTablesDB.listRows({
+                databaseId: APPWRITE_DATABASE_ID,
+                tableId: APPWRITE_TABLE_ID,
+                queries: [Appwrite.Query.equal("$id", chunk), Appwrite.Query.limit(50)]
+            });
+
+            const found = new Set();
+            result.rows.forEach(row => {
+                if (row.record_type !== "profile" && row.record_type !== "group") return;
+                let content = {};
+                try { content = JSON.parse(row.content || "{}"); } catch (_) {}
+                profileCache.set(row.$id, {
+                    name: row.display_name || "",
+                    bio: content.bio || "",
+                    avatar: content.avatar || "",
+                    un: content.un || "",
+                    ph: content.hp ? "" : (content.ph || ""),
+                    hp: !!content.hp
+                });
+                found.add(row.$id);
+            });
+            chunk.forEach(id => { if (!found.has(id)) profileCache.set(id, {}); });
+        } catch (error) {
+            console.warn("loadProfiles failed", error && error.message);
+        }
+    }
+}
+
+// عکس یک عنصر (دایره‌ای) را از روی پروفایل می‌گذارد
+async function paintAvatar(element) {
+    const profile = profileCache.get(element.dataset.user);
+    if (!profile || !profile.avatar || element.dataset.painted === profile.avatar) return;
+
+    element.dataset.painted = profile.avatar;
+    try {
+        const url = await fileBlobUrl(profile.avatar);
+        element.style.backgroundImage = `url("${url}")`;
+        element.classList.add("has-img");
+        element.textContent = "";
+    } catch (_) { /* همان حرف اول اسم می‌ماند */ }
+}
+
+function paintAvatars(root) {
+    (root || document).querySelectorAll("[data-user]").forEach(paintAvatar);
+}
+
+function createAvatar(userId, name, extraClass) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "avatar " + (extraClass || "");
+    button.dataset.user = userId;
+    button.dataset.name = name || "";
+    button.setAttribute("aria-label", "پروفایل " + (name || ""));
+    button.textContent = (name || "?").trim().charAt(0) || "?";
+    return button;
+}
+
+/* ---------- پنجرهٔ پروفایل ---------- */
+
+function ui(tag, cls, text) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+}
+
+function appToast(text, good) {
+    let node = document.getElementById("appToast");
+    if (!node) { node = ui("div", "app-toast"); node.id = "appToast"; document.body.appendChild(node); }
+    node.textContent = text;
+    node.classList.toggle("good", !!good);
+    node.classList.add("show");
+    clearTimeout(appToast._t);
+    appToast._t = setTimeout(() => node.classList.remove("show"), 2600);
+}
+
+/* ---------- لینک امن فایل (برای دانلود و پخش، بدون نیاز به ورود در مرورگر) ---------- */
+
+async function fileLinkUrl(fileId, kind) {
+    const data = await callServer({ action: "fileLink", fileId });
+    return APPWRITE_ENDPOINT + "/storage/buckets/" + APPWRITE_BUCKET_ID + "/files/" + fileId +
+        "/" + kind + "?project=" + APPWRITE_PROJECT_ID + "&token=" + data.secret;
+}
+
+async function downloadFile(fileId, baseName) {
+    const url = await fileLinkUrl(fileId, "download");
+    const link = document.createElement("a");
+    link.href = url;
+    link.rel = "noopener";
+    if (baseName) link.download = baseName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+}
+
+/* ---------- ویدیو: عکس روی جلد + مدت، و پخش‌کنندهٔ زیبا ---------- */
+
+function videoMeta(file) {
+    return new Promise(resolve => {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.muted = true;
+        video.playsInline = true;
+        video.src = url;
+
+        let duration = 0;
+        const finish = (poster) => { clearTimeout(timer); URL.revokeObjectURL(url); resolve({ poster, duration }); };
+        const timer = setTimeout(() => finish(null), 9000);
+
+        video.onerror = () => finish(null);
+        video.onloadedmetadata = () => {
+            duration = isFinite(video.duration) ? video.duration : 0;
+            try { video.currentTime = Math.min(1, (duration || 1) / 2); } catch (_) { finish(null); }
+        };
+        video.onseeked = () => {
+            try {
+                const scale = Math.min(1, 480 / (video.videoWidth || 480));
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round((video.videoWidth || 480) * scale));
+                canvas.height = Math.max(1, Math.round((video.videoHeight || 270) * scale));
+                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(blob => finish(blob ? new File([blob], "poster.jpg", { type: "image/jpeg" }) : null),
+                    "image/jpeg", 0.7);
+            } catch (_) { finish(null); }
+        };
+    });
+}
+
+function fmtTime(seconds) {
+    seconds = Math.max(0, Math.round(seconds || 0));
+    const m = Math.floor(seconds / 60), s = seconds % 60;
+    return m.toLocaleString("fa-IR") + ":" + String(s).padStart(2, "0").replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
+}
+
+function createVideoPlayer(info) {
+    const box = ui("div", "vp");
+    const stage = ui("div", "vp-stage");
+    const poster = ui("div", "vp-poster");
+    const big = ui("button", "vp-big", "▶");
+    big.type = "button";
+    big.setAttribute("aria-label", "پخش ویدیو");
+    const badge = ui("span", "vp-badge");
+
+    const mb = info.size ? (info.size / 1048576).toLocaleString("fa-IR", { maximumFractionDigits: 1 }) + " مگابایت" : "";
+    badge.textContent = [info.duration ? fmtTime(info.duration) : "", mb].filter(Boolean).join("  •  ");
+
+    if (info.posterId) fileBlobUrl(info.posterId).then(u => { poster.style.backgroundImage = 'url("' + u + '")'; }).catch(() => {});
+
+    stage.append(poster, big, badge);
+    box.appendChild(stage);
+
+    function mount(url) {
+        box.replaceChildren();
+        box.classList.add("playing");
+
+        const video = document.createElement("video");
+        video.className = "vp-video";
+        video.src = url;
+        video.playsInline = true;
+        video.preload = "auto";
+        video.setAttribute("playsinline", "");
+
+        const bar = ui("div", "vp-bar");
+        const pp = ui("button", "vp-ctl", "⏸"); pp.type = "button";
+        const cur = ui("span", "vp-time", fmtTime(0));
+        const seek = ui("input", "vp-seek"); seek.type = "range"; seek.min = 0; seek.max = 1000; seek.value = 0;
+        const dur = ui("span", "vp-time", fmtTime(info.duration || 0));
+        const mute = ui("button", "vp-ctl", "🔊"); mute.type = "button";
+        const full = ui("button", "vp-ctl", "⛶"); full.type = "button";
+        const dl = ui("button", "vp-ctl", "⬇"); dl.type = "button";
+        bar.append(pp, cur, seek, dur, mute, full);
+        if (info.fileId) bar.appendChild(dl);
+
+        const spinner = ui("div", "vp-spinner");
+        box.append(video, spinner, bar);
+
+        const toggle = () => { if (video.paused) video.play().catch(() => {}); else video.pause(); };
+        video.addEventListener("click", toggle);
+        pp.addEventListener("click", toggle);
+        video.addEventListener("play", () => { pp.textContent = "⏸"; box.classList.add("is-playing"); });
+        video.addEventListener("pause", () => { pp.textContent = "▶"; box.classList.remove("is-playing"); });
+        video.addEventListener("waiting", () => spinner.classList.add("on"));
+        video.addEventListener("playing", () => spinner.classList.remove("on"));
+        video.addEventListener("canplay", () => spinner.classList.remove("on"));
+        video.addEventListener("loadedmetadata", () => { if (isFinite(video.duration)) dur.textContent = fmtTime(video.duration); });
+        video.addEventListener("timeupdate", () => {
+            if (!isFinite(video.duration) || !video.duration) return;
+            cur.textContent = fmtTime(video.currentTime);
+            if (!seek._drag) seek.value = Math.round((video.currentTime / video.duration) * 1000);
+        });
+        video.addEventListener("ended", () => { pp.textContent = "↺"; box.classList.remove("is-playing"); });
+        video.addEventListener("error", () => { spinner.classList.remove("on"); appToast("ویدیو پخش نشد؛ دوباره امتحان کن."); });
+
+        seek.addEventListener("input", () => {
+            seek._drag = true;
+            if (video.duration) video.currentTime = (seek.value / 1000) * video.duration;
+        });
+        seek.addEventListener("change", () => { seek._drag = false; });
+        mute.addEventListener("click", () => { video.muted = !video.muted; mute.textContent = video.muted ? "🔇" : "🔊"; });
+        full.addEventListener("click", () => {
+            const target = box.requestFullscreen ? box : (box.webkitRequestFullscreen ? box : null);
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+            } else if (target) {
+                (target.requestFullscreen || target.webkitRequestFullscreen).call(target);
+            } else if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+            }
+        });
+        dl.addEventListener("click", () => downloadFile(info.fileId, "video-" + Date.now()).catch(() => appToast("دانلود ناموفق بود.")));
+
+        video.play().catch(() => {});
+    }
+
+    async function start() {
+        if (big.disabled) return;
+        big.disabled = true;
+        big.classList.add("loading");
+        big.textContent = "";
+        try {
+            const url = info.localUrl || await fileLinkUrl(info.fileId, "view");
+            mount(url);
+        } catch (error) {
+            big.disabled = false;
+            big.classList.remove("loading");
+            big.textContent = "↻";
+            badge.textContent = "دریافت ناموفق بود؛ دوباره بزن";
+        }
+    }
+
+    stage.addEventListener("click", start);
+    return box;
+}
+
+/* ---------- پنجرهٔ پروفایل (کاربر، کانال، گروه) ---------- */
+
+async function openProfileCard(userId, nameHint, options) {
+    options = options || {};
+    const selfId = await myId();
+
+    const overlay = ui("div", "pc-overlay");
+    const card = ui("div", "pc-card");
+    card.setAttribute("role", "dialog");
+
+    const close = ui("button", "pc-close", "✕");
+    close.type = "button";
+    close.setAttribute("aria-label", "بستن");
+
+    const big = ui("div", "pc-avatar", (nameHint || "?").trim().charAt(0) || "?");
+    big.dataset.user = userId;
+
+    const nameEl = ui("h2", "", nameHint || "کاربر");
+    const idEl = ui("p", "pc-id"); idEl.hidden = true;
+    const phoneEl = ui("p", "pc-phone"); phoneEl.hidden = true;
+    const bioEl = ui("p", "pc-bio", "در حال بارگذاری...");
+
+    card.append(close, big, nameEl, idEl, phoneEl, bioEl);
+
+    const membersBox = ui("div", "pc-members");
+    membersBox.hidden = true;
+    card.appendChild(membersBox);
+
+    const remove = () => { closeOverlay(overlay); document.removeEventListener("keydown", onKey); };
+    const onKey = event => { if (event.key === "Escape") remove(); };
+
+    const addButton = (label, cls, run) => {
+        const button = ui("button", "pc-dm " + (cls || ""), label);
+        button.type = "button";
+        button.addEventListener("click", () => { remove(); run(); });
+        card.appendChild(button);
+    };
+
+    if (userId !== selfId && !options.hideDm) {
+        const dm = ui("a", "pc-dm", "✉️ پیام شخصی");
+        dm.href = "chat.html?type=dm&user=" + encodeURIComponent(userId);
+        card.appendChild(dm);
+    }
+    if (options.actionLabel && options.onAction) addButton(options.actionLabel, "pc-action", options.onAction);
+    (options.buttons || []).forEach(b => addButton(b.label, b.danger ? "pc-danger" : "pc-secondary", b.run));
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", onKey);
+    close.addEventListener("click", remove);
+    overlay.addEventListener("click", event => { if (event.target === overlay) remove(); });
+
+    // اعضا (حلقه یا گروه)
+    async function showMembers(list) {
+        if (!list || !list.length) return;
+        membersBox.hidden = false;
+        membersBox.replaceChildren(ui("div", "pc-members-title", "اعضا (" + list.length.toLocaleString("fa-IR") + ")"));
+
+        list.forEach(member => {
+            const row = ui("div", "pc-member");
+            const av = createAvatar(member.id, member.name);
+            const info = ui("div", "pc-member-info");
+            info.appendChild(ui("b", "", member.name || "عضو"));
+            if (member.un) info.appendChild(ui("small", "", "@" + member.un));
+            row.append(av, info);
+
+            const role = { owner: "سازنده", manager: "مدیر" }[member.role];
+            if (role) row.appendChild(ui("span", "pc-role", role));
+
+            if (options.canRemove && member.id !== selfId && member.role !== "owner") {
+                const rm = ui("button", "pc-remove", "✕");
+                rm.type = "button";
+                rm.setAttribute("aria-label", "حذف عضو");
+                rm.addEventListener("click", async event => {
+                    event.stopPropagation();
+                    if (!confirm("«" + member.name + "» از گروه حذف شود؟")) return;
+                    try { await options.onRemove(member.id); row.remove(); appToast("عضو حذف شد.", true); }
+                    catch (error) { appToast(error.message || "حذف ناموفق بود."); }
+                });
+                row.appendChild(rm);
+            }
+
+            row.addEventListener("click", () => { remove(); openProfileCard(member.id, member.name, {}); });
+            membersBox.appendChild(row);
+        });
+
+        await loadProfiles(list.map(x => x.id));
+        paintAvatars(membersBox);
+    }
+
+    if (options.members) showMembers(options.members);
+    else if (options.membersLoader) options.membersLoader().then(showMembers).catch(() => {});
+
+    await loadProfiles([userId]);
+    const profile = profileCache.get(userId) || {};
+
+    nameEl.textContent = profile.name || nameHint || "کاربر";
+    bioEl.textContent = profile.bio || (options.noBioText || "بیوگرافی ثبت نشده است.");
+    bioEl.classList.toggle("empty", !profile.bio);
+
+    if (profile.un) {
+        idEl.hidden = false;
+        idEl.textContent = "@" + profile.un;
+        idEl.addEventListener("click", () => {
+            try { navigator.clipboard.writeText("@" + profile.un); appToast("آیدی کپی شد.", true); } catch (_) {}
+        });
+    }
+    if (profile.ph) {
+        phoneEl.hidden = false;
+        phoneEl.textContent = "📱 " + profile.ph;
+    }
+
+    paintAvatar(big);
+
+    if (profile.avatar) {
+        big.style.cursor = "zoom-in";
+        big.addEventListener("click", async () => {
+            try { openImageViewer(await fileBlobUrl(profile.avatar), "profile-" + (profile.name || "user"), profile.avatar); }
+            catch (_) {}
+        });
+    }
+}
+
+/* ---------- ویرایش پروفایل کانال/گروه حلقه ---------- */
+
+function pickImageInto(preview, letterText) {
+    const state = { file: null, remove: false };
+    const input = ui("input"); input.type = "file"; input.accept = "image/*"; input.hidden = true;
+
+    preview.style.cursor = "pointer";
+    preview.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+        const f = input.files[0];
+        if (!f || !f.type.startsWith("image/")) return;
+        state.file = f; state.remove = false;
+        preview.textContent = "";
+        preview.classList.add("has-img");
+        preview.style.backgroundImage = 'url("' + URL.createObjectURL(f) + '")';
+    });
+    state.clear = () => {
+        state.file = null; state.remove = true;
+        preview.classList.remove("has-img");
+        preview.style.backgroundImage = "";
+        preview.textContent = letterText;
+    };
+    state.input = input;
+    return state;
+}
+
+function openChannelEditor(ctx) {
+    const profile = profileCache.get(ctx.profileId) || {};
+    const overlay = ui("div", "pc-overlay");
+    const card = ui("div", "pc-card");
+
+    const preview = ui("div", "pc-avatar", (ctx.title || "?").trim().charAt(0));
+    if (profile.avatar) { preview.dataset.user = ctx.profileId; paintAvatar(preview); }
+    const pick = pickImageInto(preview, (ctx.title || "?").trim().charAt(0));
+
+    const bio = ui("textarea", "pc-textarea");
+    bio.maxLength = 150; bio.rows = 3; bio.placeholder = "بیوگرافی (حداکثر ۱۵۰ کاراکتر)"; bio.value = profile.bio || "";
+
+    const message = ui("p", "pc-bio empty");
+    const save = ui("button", "pc-dm", "ذخیره"); save.type = "button";
+    const rm = ui("button", "pc-dm pc-secondary", "حذف عکس"); rm.type = "button";
+    const cancel = ui("button", "pc-dm pc-secondary", "انصراف"); cancel.type = "button";
+
+    rm.addEventListener("click", () => pick.clear());
+    cancel.addEventListener("click", () => closeOverlay(overlay));
+
+    save.addEventListener("click", async () => {
+        save.disabled = true;
+        message.textContent = "در حال ذخیره...";
+        try {
+            const payload = { action: "updateChannelProfile", channel: ctx.channelId, bio: bio.value };
+            if (pick.file) payload.avatarFileId = await uploadToBucket(await compressImage(pick.file, 512, 0.85));
+            else if (pick.remove) payload.removeAvatar = true;
+
+            await callServer(payload);
+            profileCache.delete(ctx.profileId);
+            await loadProfiles([ctx.profileId]);
+            closeOverlay(overlay);
+            appToast("پروفایل ذخیره شد.", true);
+            if (ctx.onChanged) ctx.onChanged();
+        } catch (error) {
+            message.textContent = error.message || "ذخیره ناموفق بود.";
+            save.disabled = false;
+        }
+    });
+
+    card.append(ui("h2", "", "ویرایش " + ctx.title), preview, ui("p", "pc-bio empty", "برای تغییر عکس، روی دایره بزن."),
+        pick.input, bio, message, save, rm, cancel);
+    overlay.appendChild(card);
+    overlay.addEventListener("click", event => { if (event.target === overlay) closeOverlay(overlay); });
+    document.body.appendChild(overlay);
+}
+
+/* ---------- ساخت و ویرایش گروه کاربران ---------- */
+
+function userPicker(excludeIds, onChange) {
+    const wrap = ui("div", "gp-picker");
+    const chips = ui("div", "gp-chips");
+    const search = ui("input", "pc-textarea gp-search");
+    search.type = "search"; search.placeholder = "جستجوی اسم یا آیدی (@)..."; search.autocomplete = "off";
+    const results = ui("div", "gp-results");
+    wrap.append(chips, search, results);
+
+    const selected = new Map();
+    let ticket = 0, timer = null;
+
+    function drawChips() {
+        chips.replaceChildren();
+        selected.forEach((name, id) => {
+            const chip = ui("button", "gp-chip", name + " ✕");
+            chip.type = "button";
+            chip.addEventListener("click", () => { selected.delete(id); drawChips(); if (onChange) onChange(); });
+            chips.appendChild(chip);
+        });
+    }
+
+    search.addEventListener("input", () => {
+        clearTimeout(timer);
+        const q = search.value.trim();
+        if (q.replace(/^@/, "").length < 2) { results.replaceChildren(); return; }
+
+        timer = setTimeout(async () => {
+            const mine = ++ticket;
+            try {
+                const data = await callServer({ action: "searchUsers", q });
+                if (mine !== ticket) return;
+                results.replaceChildren();
+                (data.users || []).filter(u => !excludeIds.includes(u.id)).forEach(user => {
+                    const row = ui("button", "gp-result");
+                    row.type = "button";
+                    row.append(ui("b", "", user.name), ui("small", "", user.un ? "@" + user.un : ""));
+                    row.addEventListener("click", () => {
+                        selected.set(user.id, user.name);
+                        drawChips();
+                        search.value = "";
+                        results.replaceChildren();
+                        if (onChange) onChange();
+                    });
+                    results.appendChild(row);
+                });
+            } catch (_) {}
+        }, 300);
+    });
+
+    return { node: wrap, selected };
+}
+
+function openGroupEditor(ctx) {
+    // ctx: { mode: "create" | "edit", gid, current:{name,bio}, onDone(gid) }
+    const editing = ctx.mode === "edit";
+    const current = ctx.current || {};
+    const profile = editing ? (profileCache.get(ctx.gid) || {}) : {};
+
+    const overlay = ui("div", "pc-overlay");
+    const card = ui("div", "pc-card gp-card");
+
+    const preview = ui("div", "pc-avatar", (current.name || "گ").trim().charAt(0));
+    if (editing && profile.avatar) { preview.dataset.user = ctx.gid; paintAvatar(preview); }
+    const pick = pickImageInto(preview, "📷");
+    if (!editing) preview.textContent = "📷";
+
+    const name = ui("input", "pc-textarea"); name.type = "text"; name.maxLength = 40; name.placeholder = "اسم گروه"; name.value = current.name || "";
+    const bio = ui("textarea", "pc-textarea"); bio.maxLength = 150; bio.rows = 2; bio.placeholder = "توضیحات گروه (اختیاری)"; bio.value = profile.bio || current.bio || "";
+
+    const picker = editing ? null : userPicker([]);
+    const message = ui("p", "pc-bio empty");
+    const save = ui("button", "pc-dm", editing ? "ذخیره" : "ساخت گروه"); save.type = "button";
+    const cancel = ui("button", "pc-dm pc-secondary", "انصراف"); cancel.type = "button";
+    cancel.addEventListener("click", () => closeOverlay(overlay));
+
+    save.addEventListener("click", async () => {
+        const title = name.value.trim();
+        if (title.length < 2) { message.textContent = "اسم گروه حداقل ۲ حرف باشد."; return; }
+
+        save.disabled = true;
+        message.textContent = editing ? "در حال ذخیره..." : "در حال ساخت گروه...";
+        try {
+            const payload = editing
+                ? { action: "updateGroup", id: ctx.gid, name: title, bio: bio.value }
+                : { action: "createGroup", name: title, bio: bio.value, memberIds: [...picker.selected.keys()] };
+
+            if (pick.file) payload.avatarFileId = await uploadToBucket(await compressImage(pick.file, 512, 0.85));
+            else if (pick.remove && editing) payload.removeAvatar = true;
+
+            const data = await callServer(payload);
+            const gid = editing ? ctx.gid : data.id;
+            profileCache.delete(gid);
+            closeOverlay(overlay);
+            appToast(editing ? "گروه ویرایش شد." : "گروه ساخته شد.", true);
+            if (ctx.onDone) ctx.onDone(gid);
+        } catch (error) {
+            message.textContent = error.message || "انجام نشد.";
+            save.disabled = false;
+        }
+    });
+
+    card.append(ui("h2", "", editing ? "ویرایش گروه" : "گروه جدید"), preview,
+        ui("p", "pc-bio empty", "برای انتخاب عکس گروه، روی دایره بزن."), pick.input, name, bio);
+    if (picker) card.append(ui("div", "pc-members-title", "افزودن عضو"), picker.node);
+    card.append(message, save, cancel);
+
+    overlay.appendChild(card);
+    overlay.addEventListener("click", event => { if (event.target === overlay) closeOverlay(overlay); });
+    document.body.appendChild(overlay);
+}
+
+function openAddMembers(ctx) {
+    const overlay = ui("div", "pc-overlay");
+    const card = ui("div", "pc-card gp-card");
+    const picker = userPicker(ctx.existingIds || []);
+    const message = ui("p", "pc-bio empty");
+    const save = ui("button", "pc-dm", "افزودن"); save.type = "button";
+    const cancel = ui("button", "pc-dm pc-secondary", "انصراف"); cancel.type = "button";
+    cancel.addEventListener("click", () => closeOverlay(overlay));
+
+    save.addEventListener("click", async () => {
+        const ids = [...picker.selected.keys()];
+        if (!ids.length) { message.textContent = "حداقل یک نفر را انتخاب کن."; return; }
+        save.disabled = true;
+        try {
+            await callServer({ action: "addGroupMembers", id: ctx.gid, userIds: ids });
+            closeOverlay(overlay);
+            appToast("عضوها اضافه شدند.", true);
+            if (ctx.onDone) ctx.onDone();
+        } catch (error) { message.textContent = error.message || "انجام نشد."; save.disabled = false; }
+    });
+
+    card.append(ui("h2", "", "افزودن عضو"), picker.node, message, save, cancel);
+    overlay.appendChild(card);
+    overlay.addEventListener("click", event => { if (event.target === overlay) closeOverlay(overlay); });
+    document.body.appendChild(overlay);
+}
+
+/* ---------- اطلاعات گفت‌وگو (دایره‌ی پروفایل / عنوان) ---------- */
+
+async function openChatInfo(ctx) {
+    const me = await myId();
+
+    if (ctx.kind === "dm") return openProfileCard(ctx.userId, ctx.title, { hideDm: true });
+
+    if (ctx.kind === "ann") {
+        return openProfileCard("chan-ann", ctx.title, {
+            hideDm: true, noBioText: "توضیحاتی ثبت نشده است.",
+            actionLabel: ctx.canEdit ? "✏️ ویرایش عکس و بیوگرافی" : "",
+            onAction: () => openChannelEditor({ profileId: "chan-ann", channelId: "announcements", title: ctx.title, onChanged: ctx.onChanged })
+        });
+    }
+
+    if (ctx.kind === "ring") {
+        return openProfileCard("chan-" + ctx.ring, ctx.title, {
+            hideDm: true, noBioText: "توضیحاتی ثبت نشده است.",
+            membersLoader: () => callServer({ action: "groupInfo", ring: ctx.ring }).then(d => d.members),
+            actionLabel: ctx.canEdit ? "✏️ ویرایش عکس و بیوگرافی" : "",
+            onAction: () => openChannelEditor({ profileId: "chan-" + ctx.ring, channelId: ctx.ring, title: ctx.title, onChanged: ctx.onChanged })
+        });
+    }
+
+    if (ctx.kind === "ugroup") {
+        let info;
+        try { info = await callServer({ action: "groupInfo", id: ctx.gid }); }
+        catch (error) { appToast(error.message || "اطلاعات گروه دریافت نشد."); return; }
+
+        const owner = info.owner === me;
+        const buttons = owner ? [
+            { label: "✏️ ویرایش گروه", run: () => openGroupEditor({ mode: "edit", gid: ctx.gid, current: { name: ctx.title }, onDone: () => ctx.onChanged && ctx.onChanged() }) },
+            { label: "➕ افزودن عضو", run: () => openAddMembers({ gid: ctx.gid, existingIds: info.members.map(x => x.id), onDone: () => ctx.onChanged && ctx.onChanged() }) },
+            { label: "🗑️ حذف گروه", danger: true, run: async () => {
+                if (!confirm("گروه و همهٔ پیام‌هایش برای همیشه حذف می‌شود. ادامه می‌دهی؟")) return;
+                try { await callServer({ action: "deleteGroup", id: ctx.gid }); location.href = "index.html"; }
+                catch (error) { appToast(error.message || "حذف ناموفق بود."); }
+            } }
+        ] : [
+            { label: "🚪 ترک گروه", danger: true, run: async () => {
+                if (!confirm("از این گروه خارج می‌شوی. ادامه می‌دهی؟")) return;
+                try { await callServer({ action: "removeGroupMember", id: ctx.gid, userId: me }); location.href = "index.html"; }
+                catch (error) { appToast(error.message || "خروج ناموفق بود."); }
+            } }
+        ];
+
+        return openProfileCard(ctx.gid, ctx.title, {
+            hideDm: true, noBioText: "توضیحاتی ثبت نشده است.",
+            members: info.members, canRemove: owner, buttons,
+            onRemove: uid => callServer({ action: "removeGroupMember", id: ctx.gid, userId: uid })
+        });
+    }
+}
+
+/* ---------- انتشار پروفایل خود کاربر (برای صفحهٔ پروفایل) ---------- */
+
+async function publishPublicProfile(patch) {
+    try {
+        const payload = { action: "updateProfile" };
+
+        if ("bio" in patch) payload.bio = patch.bio || "";
+
+        if ("avatarDataUrl" in patch) {
+            if (!patch.avatarDataUrl) {
+                payload.removeAvatar = true;
+            } else {
+                const blob = await (await fetch(patch.avatarDataUrl)).blob();
+                const file = new File([blob], "avatar.jpg", { type: blob.type || "image/jpeg" });
+                payload.avatarFileId = await uploadToBucket(file);
+            }
+        }
+
+        await callServer(payload);
+        profileCache.delete(await myId());
+        return true;
+    } catch (error) {
+        publishPublicProfile.lastError = (error && error.message) || "خطای نامشخص";
+        console.warn("publishPublicProfile failed:", error && error.message);
+        return false;
+    }
+}
+
+// اگر عکس/بیوگرافی قبلاً فقط در prefs بوده، یک بار برای بقیه منتشر می‌شود
+async function ensurePublicProfileSynced(prefs) {
+    try {
+        const key = ((prefs && prefs.avatar) || "").length + ":" + ((prefs && prefs.bio) || "");
+        if (localStorage.getItem("pubProfileKey") === key) return;
+
+        const patch = { bio: (prefs && prefs.bio) || "" };
+        if (prefs && prefs.avatar) patch.avatarDataUrl = prefs.avatar;
+
+        if (await publishPublicProfile(patch)) localStorage.setItem("pubProfileKey", key);
+    } catch (_) {}
+}
+
+
+/* ---------- پنجرهٔ عملیات (منوی پایین صفحه) ---------- */
+
+let _activeSheet = null;
+
+function closeOverlay(node) {
+    if (!node || node.classList.contains("closing")) return;
+    node.classList.add("closing");
+    setTimeout(() => node.remove(), 200);
+}
+
+function closeSheet() {
+    if (_activeSheet) { const node = _activeSheet; _activeSheet = null; closeOverlay(node); }
+}
+
+function sheetOpen() { return !!_activeSheet; }
+
+function showSheet(titleText, items) {
+    closeSheet();
+
+    const overlay = document.createElement("div");
+    overlay.className = "sheet-overlay";
+
+    const sheet = document.createElement("div");
+    sheet.className = "sheet";
+
+    if (titleText) {
+        const title = document.createElement("div");
+        title.className = "sheet-title";
+        title.textContent = titleText;
+        sheet.appendChild(title);
+    }
+
+    items.forEach(item => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sheet-item" + (item.danger ? " danger" : "");
+
+        const icon = document.createElement("span");
+        icon.textContent = item.icon;
+        const label = document.createElement("b");
+        label.textContent = item.label;
+        label.style.fontWeight = "500";
+
+        button.append(icon, label);
+        button.addEventListener("click", () => { closeSheet(); item.run(); });
+        sheet.appendChild(button);
+    });
+
+    overlay.appendChild(sheet);
+    overlay.addEventListener("click", event => { if (event.target === overlay) closeSheet(); });
+    document.body.appendChild(overlay);
+    _activeSheet = overlay;
+    return sheet;
+}
+
+</script>
+<script>
+(async function () {
+    if (typeof appwriteClient === "undefined") { add("config.js اجرا نشد (فایل جایگزین نشده یا خطا دارد)", false); return; }
+    add("config.js اجرا شد", true,
+        "FUNCTION_ID=" + FUNCTION_ID + "\nMESSAGES=" + APPWRITE_MESSAGES_TABLE_ID);
+
+    let acc = null;
+    try {
+        acc = await appwriteAccount.get();
+        add("وارد شده‌ای: " + acc.name, true,
+            "id=" + acc.$id + "\nemail=" + acc.email + "\nlabels=" + JSON.stringify(acc.labels) +
+            "\nadmin=" + (acc.$id === ADMIN_USER_ID));
+    } catch (e) {
+        add("وارد نشده‌ای (اول از login.html یا admin.html وارد شو و دوباره این صفحه را باز کن)", false, errText(e));
+    }
+
+    // جدول اعضا
+    try {
+        const r = await appwriteTablesDB.listRows({ databaseId: APPWRITE_DATABASE_ID, tableId: APPWRITE_TABLE_ID });
+        add("جدول اعضا (" + APPWRITE_TABLE_ID + ") خوانده شد", true, "تعداد ردیف قابل‌دیدن: " + r.total);
+    } catch (e) { add("جدول اعضا خوانده نشد", false, errText(e)); }
+
+    // جدول پیام‌ها
+    try {
+        const r = await appwriteTablesDB.listRows({
+            databaseId: APPWRITE_DATABASE_ID, tableId: APPWRITE_MESSAGES_TABLE_ID,
+            queries: [Appwrite.Query.equal("group_id", ["m:ann"]), Appwrite.Query.limit(1)]
+        });
+        add("جدول پیام‌ها (" + APPWRITE_MESSAGES_TABLE_ID + ") سالم است", true, "پیام‌های قابل‌دیدن در کانال: " + r.total);
+    } catch (e) { add("جدول پیام‌ها مشکل دارد", false, errText(e)); }
+
+    // فضای ذخیره‌سازی (آپلود و خواندن یک تصویر ۱×۱)
+    if (acc) {
+        let testId = null;
+        try {
+            const bytes = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="), ch => ch.charCodeAt(0));
+            testId = await uploadToBucket(new File([bytes], "t.png", { type: "image/png" }));
+            add("آپلود در Storage موفق بود", true, "bucket=" + APPWRITE_BUCKET_ID + "\nid=" + testId);
+
+            const url = APPWRITE_ENDPOINT + "/storage/buckets/" + APPWRITE_BUCKET_ID + "/files/" + testId + "/view";
+
+            try {
+                const buf = await appwriteClient.call("get", new URL(url), {}, {}, "arrayBuffer");
+                add("خواندن فایل (روش SDK) موفق بود", true, "bytes=" + buf.byteLength);
+            } catch (e) { add("خواندن فایل (روش SDK) ناموفق", false, errText(e)); }
+
+            try {
+                const jwt = await getJwt();
+                const r = await fetch(url, { headers: { "X-Appwrite-Project": APPWRITE_PROJECT_ID, "X-Appwrite-JWT": jwt } });
+                add(r.ok ? "خواندن فایل (روش JWT) موفق بود" : "خواندن فایل (روش JWT) ناموفق", r.ok,
+                    "http=" + r.status + (r.ok ? "" : "\n" + (await r.text()).slice(0, 200)));
+            } catch (e) { add("خواندن فایل (روش JWT) ناموفق", false, String(e && e.message)); }
+        } catch (e) {
+            add("آپلود در Storage ناموفق (bucket یا دسترسی Create را بررسی کن)", false, errText(e));
+        } finally {
+            if (testId) { try { await appwriteStorage.deleteFile({ bucketId: APPWRITE_BUCKET_ID, fileId: testId }); } catch (_) {} }
+        }
+    }
+
+    // تابع
+    try {
+        const ex = await appwriteFunctions.createExecution({
+            functionId: FUNCTION_ID, body: JSON.stringify({ action: "ping" }),
+            async: false, method: "POST", headers: { "content-type": "application/json" }
+        });
+        const reached = ex.responseStatusCode === 400 || ex.responseStatusCode === 200;
+        add(reached ? "تابع در Appwrite اجرا می‌شود" : "تابع اجرا شد ولی خطا داد", reached,
+            "status=" + ex.status + "\nhttp=" + ex.responseStatusCode +
+            "\nbody=" + ex.responseBody + "\nerrors=" + (ex.errors || ""));
+    } catch (e) { add("تابع پیدا یا اجرا نشد", false, errText(e)); }
+})();
+</script>
+</body>
+</html>
